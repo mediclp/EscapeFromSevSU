@@ -10,7 +10,7 @@ protected:
 public:
     flashlight() {
         charge = 100.0f;
-        on = true;
+        on = false;   // в начале фонарик выключен
     }
 
     // включает или выключает фонарик

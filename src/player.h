@@ -24,6 +24,9 @@ private:
     string keys;   // буквы найденных ключей, например "ab"
     int score;
     bool moving, running, caught;
+    bool tired;   // выдохся: бежать нельзя, пока выносливость не восстановится
+    float boost_time;    // сколько ещё действует энергетик
+    float speed_scale;   // множитель скорости: больше 1 в режиме осмотра карт
 
     // поворачивает взгляд на смещение мыши
     void look(Vector2 delta);
@@ -50,8 +53,11 @@ public:
     // на каком расстоянии слышно героя: зависит от того, идёт он или бежит
     float noise_radius();
 
-    // восстанавливает выносливость, но не больше 100
-    void add_stamina(float amount);
+    // энергетик: выносливость 100% и не тратится seconds секунд
+    void drink_energy(float seconds);
+
+    // во сколько раз быстрее ходить (для осмотра карт)
+    void set_speed_scale(float k) { speed_scale = k; }
 
     // начисляет очки: hero += 50
     player& operator+=(int points) {
@@ -70,6 +76,8 @@ public:
 
     float get_stamina() { return stamina; }
     int get_keys() { return keys.length(); }
+    bool is_tired() { return tired; }
+    float get_boost_time() { return boost_time; }
     int get_score() { return score; }
     bool is_caught() { return caught; }
 };

@@ -9,8 +9,8 @@ class renderer {
 private:
     RenderTexture2D target;   // маленькая картинка, в которую рисуется сцена
     Shader shader;            // свет фонарика, туман и красный свет тревоги
-    Texture2D wall_texture, floor_texture, ceiling_texture, white_texture;
-    Model wall_model, floor_model, ceiling_model, box_model;
+    Texture2D wall_texture, window_texture, floor_texture, ceiling_texture, white_texture;
+    Model wall_model, window_model, floor_model, ceiling_model, box_model;
     Camera3D camera;
     int view_pos_loc, light_dir_loc, flashlight_loc, alarm_loc;   // номера переменных шейдера
 
@@ -43,6 +43,7 @@ public:
 
     // рисуют клетку уровня; center - центр клетки на уровне пола
     void draw_wall(Vector3 center);
+    void draw_window(Vector3 center);   // стена с окном на улицу
     void draw_floor_and_ceiling(Vector3 center);
 
     // рисует цветной параллелепипед

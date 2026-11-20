@@ -15,7 +15,8 @@ const float ALARM_DURATION = 12.0f;
 const float ALARM_PULSE = 4.0f;      // как быстро мигает красный свет
 const float MESSAGE_TIME = 3.5f;
 const float FONT_SIZE = 32.0f;
-const int SHOWN_RECORDS = 5;         // сколько рекордов видно в меню
+const int SHOWN_RECORDS = 5;
+const float PEACEFUL_SPEED = 3.0f;   // в режиме осмотра герой ходит втрое быстрее         // сколько рекордов видно в меню
 
 // руководство пользователя на экране справки
 const int HELP_COUNT = 16;
@@ -131,6 +132,7 @@ void game::start_level(int number) {
         hero->add_key('b');
         hero->add_key('v');
         hero->add_key('c');
+        hero->set_speed_scale(PEACEFUL_SPEED);
         message += " (осмотр: 1, 2, 3 - другой уровень)";
     }
     message_time = MESSAGE_TIME;
@@ -309,11 +311,32 @@ void game::draw() {
 void game::draw_hud() {
     float k = ui_scale();
     float small_text = FONT_SIZE * 0.75f * k;
-    string status = TextFormat("Фонарик %d%%  Выносливость %d%%  Ключи %d  Очки %d",
-                               (int)hero->get_charge(), (int)hero->get_stamina(), hero->get_keys(),
+    string status = TextFormat("Фонарик %d%%  Выносливость %d%%%s  Очки %d  Ключи:",
+                               (int)hero->get_charge(), (int)hero->get_stamina(),
+                               hero->is_tired() ? " (выдохся)"
+                               : hero->get_boost_time() > 0.0f ? TextFormat(" (энергетик %d с)", (int)hero->get_boost_time() + 1)
+                               : "",
                                total_score + hero->get_score());
     Vector2 corner = {16.0f * k, 12.0f * k};
     DrawTextEx(font, status.c_str(), corner, small_text, 1.0f, RAYWHITE);
+
+    // ключи уровня: зелёный - найден, красный - ещё нет.
+    // на 1 этаже нужен пропуск, на остальных - ключи от лестниц корпусов
+    const int KEY_COUNT = 3;
+    char ids[KEY_COUNT] = {'a', 'b', 'v'};
+    const char *names[KEY_COUNT] = {"А", "Б", "В"};
+    int count = KEY_COUNT;
+    if (level_number == 1) {
+        ids[0] = 'c';
+        names[0] = "пропуск";
+        count = 1;
+    }
+    corner.x += MeasureTextEx(font, status.c_str(), small_text, 1.0f).x;
+    for (int i = 0; i < count; i++) {
+        string label = string(" ") + names[i];
+        DrawTextEx(font, label.c_str(), corner, small_text, 1.0f, hero->has_key(ids[i]) ? GREEN : RED);
+        corner.x += MeasureTextEx(font, label.c_str(), small_text, 1.0f).x;
+    }
 
     string hint = lvl->prompt(*hero);
     if (hint != "")

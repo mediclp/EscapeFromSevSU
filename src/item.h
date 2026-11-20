@@ -54,7 +54,7 @@ public:
     Color color() { return LIME; }
 };
 
-// энергетик: восстанавливает выносливость
+// энергетик: 15 секунд бега без усталости
 class energy_drink : public item {
 public:
     energy_drink(Vector3 p) : item(p) {}

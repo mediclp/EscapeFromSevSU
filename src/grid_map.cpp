@@ -23,9 +23,9 @@ float flat_distance(Vector3 a, Vector3 b) {
 
 void grid_map::add_row(string row) {
     if (height >= MAX_SIZE)
-        throw "На карте больше 80 строк";
+        throw "На карте больше 96 строк";
     if ((int)row.length() > MAX_SIZE)
-        throw "Строка карты длиннее 80 символов";
+        throw "Строка карты длиннее 96 символов";
     rows[height] = row;
     height++;
     if ((int)row.length() > width)
@@ -49,7 +49,7 @@ bool is_door_symbol(char s) {
 
 bool grid_map::is_solid(cell c) {
     char s = symbol_at(c);
-    return s == '#' || s == 'L' || is_door_symbol(s);
+    return s == '#' || s == 'w' || s == 'L' || is_door_symbol(s);
 }
 
 bool grid_map::collides(float x, float z, float radius) {

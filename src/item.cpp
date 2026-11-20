@@ -4,7 +4,7 @@
 #include "renderer.h"
 
 const float BATTERY_CHARGE = 40.0f;
-const float DRINK_STAMINA = 100.0f;
+const float DRINK_TIME = 15.0f;   // сколько секунд действует энергетик
 
 void item::draw(renderer &r) {
     Vector3 size = {0.25f, 0.25f, 0.25f};
@@ -47,6 +47,6 @@ string battery::apply_to(player &p) {
 }
 
 string energy_drink::apply_to(player &p) {
-    p.add_stamina(DRINK_STAMINA);
-    return "Выносливость восстановлена";
+    p.drink_energy(DRINK_TIME);
+    return "Энергетик: 15 секунд бега без усталости";
 }

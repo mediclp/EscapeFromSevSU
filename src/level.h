@@ -40,6 +40,9 @@ private:
     void add_item(item *it);
     void add_door(door *d);
 
+    // проём в прямой стене: над ним рисуется перемычка
+    bool is_straight_doorway(cell c);
+
     // ближайшие к герою предмет и дверь или NULL
     item* nearest_item(player &p);
     door* nearest_door(player &p);

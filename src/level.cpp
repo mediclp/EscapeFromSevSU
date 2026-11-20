@@ -199,6 +199,8 @@ void level::draw(renderer &r) {
             char s = grid.symbol_at(c);
             if (s == '#') {
                 r.draw_wall(center);
+            } else if (s == 'w') {
+                r.draw_window(center);
             } else if (s == 'L') {
                 // лифт - декорация: света нет, лифты не работают
                 Vector3 lift = {center.x, WALL_HEIGHT / 2.0f, center.z};
@@ -208,12 +210,12 @@ void level::draw(renderer &r) {
             } else {
                 r.draw_floor_and_ceiling(center);
             }
-            if (s == 'd') {
-                // дверной проём: пройти можно, а над ним перемычка до потолка
+            if (s == 'd' && is_straight_doorway(c)) {
+                // дверной проём: пройти можно, а над ним перемычка до потолка цвета верха стены
                 Vector3 lintel = {center.x, (DOOR_HEIGHT + WALL_HEIGHT) / 2.0f, center.z};
                 Vector3 lintel_size = {CELL, WALL_HEIGHT - DOOR_HEIGHT, CELL};
-                Color plaster = {150, 145, 125, 255};
-                r.draw_box(lintel, lintel_size, plaster);
+                Color paint = {70, 90, 80, 255};
+                r.draw_box(lintel, lintel_size, paint);
             }
             if (s == 'X') {
                 Vector3 mark = {center.x, 0.05f, center.z};
@@ -229,6 +231,13 @@ void level::draw(renderer &r) {
         items[i]->draw(r);
     for (int i = 0; i < enemy_count; i++)
         enemies[i]->draw(r);
+}
+
+bool level::is_straight_doorway(cell c) {
+    // перемычка нужна только в прямой стене: стены с двух противоположных сторон.
+    // на диагональных стенах проём - это уступ, и перемычка над ним висела бы криво
+    cell l = {c.x - 1, c.z}, r = {c.x + 1, c.z}, u = {c.x, c.z - 1}, d = {c.x, c.z + 1};
+    return (grid.is_solid(l) && grid.is_solid(r)) || (grid.is_solid(u) && grid.is_solid(d));
 }
 
 bool level::is_exit(Vector3 p) {
