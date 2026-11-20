@@ -38,10 +38,11 @@ if(MINGW)
     target_link_options(EscapeFromSevSU PRIVATE -static)
 endif()
 
-# Папка assets копируется к .exe после каждой сборки
-add_custom_command(TARGET EscapeFromSevSU POST_BUILD
+# Папка assets копируется к .exe при каждой сборке, даже если поменялись только карты
+add_custom_target(copy_assets ALL
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_SOURCE_DIR}/assets $<TARGET_FILE_DIR:EscapeFromSevSU>/assets)
+add_dependencies(EscapeFromSevSU copy_assets)
 
 enable_testing()
 add_executable(game_tests tests/game_tests.cpp)

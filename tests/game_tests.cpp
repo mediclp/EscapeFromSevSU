@@ -229,6 +229,23 @@ void test_items() {
     check(!k.is_active(), "подобранный предмет исчезает");
 }
 
+// выдохшийся герой не бежит, пока не отдышится
+void test_tired_player_walks() {
+    level *l = create_level(1);
+    loads(l, map_path(1));
+    player hero(l->get_spawn());
+    game_context ctx = {*l, hero, false};
+    player_input in = no_input();
+    in.move.y = 1.0f;
+    in.run = true;
+    for (int i = 0; i < 50; i++)
+        hero.apply_input(in, 0.1f, ctx);     // 5 секунд бега: выносливость кончилась
+    check(hero.is_tired(), "без выносливости герой выдыхается");
+    hero.apply_input(in, 0.1f, ctx);
+    check(hero.noise_radius() < 2.0f, "выдохшийся герой идёт шагом, а не бежит");
+    delete l;
+}
+
 void test_energy_drink() {
     level *l = create_level(1);
     loads(l, map_path(1));
@@ -244,6 +261,12 @@ void test_energy_drink() {
     energy_drink drink(zero);
     drink.pick_up(hero);
     check(hero.get_stamina() == 100.0f, "энергетик восстанавливает выносливость");
+    for (int i = 0; i < 100; i++)
+        hero.apply_input(in, 0.1f, ctx);      // 10 секунд бега под энергетиком
+    check(hero.get_stamina() == 100.0f && !hero.is_tired(), "под энергетиком выносливость не тратится");
+    for (int i = 0; i < 60; i++)
+        hero.apply_input(in, 0.1f, ctx);      // ещё 6 секунд: энергетик закончился
+    check(hero.get_stamina() < 100.0f, "через 15 секунд энергетик заканчивается");
     delete l;
 }
 
@@ -361,8 +384,7 @@ void test_light_hunter_ignores_dark_player() {
         e = l->get_enemy(i);
         close = free_spot(l, e->get_position(), 3);
     }
-    player hero(close);
-    toggle_flashlight(hero, *l);
+    player hero(close);   // фонарик в начале выключен
     game_context ctx = {*l, hero, false};
     simulate(*e, ctx, 0.05f);
     check(e->get_state() == PATROL, "без фонарика охотник не реагирует");
@@ -415,6 +437,7 @@ int main() {
     test_collision();
     test_items();
     test_energy_drink();
+    test_tired_player_walks();
     test_listener_hears_noise();
     test_chase_ends_in_search_and_patrol();
     test_patrol_never_freezes();

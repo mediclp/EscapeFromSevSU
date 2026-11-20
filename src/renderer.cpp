@@ -30,6 +30,35 @@ Texture2D make_noise_texture(Color base, int spread, int stripe_from, Color stri
     return texture;
 }
 
+// текстура окна: стена, в середине светлая рама и тёмное ночное стекло с переплётом
+Texture2D make_window_texture(Color wall) {
+    Image image = GenImageColor(TEXTURE_SIZE, TEXTURE_SIZE, wall);
+    Color frame = {175, 172, 160, 255};
+    Color glass = {28, 38, 52, 255};
+    for (int y = 0; y < TEXTURE_SIZE; y++) {
+        for (int x = 0; x < TEXTURE_SIZE; x++) {
+            Color c = wall;
+            int shift = GetRandomValue(-6, 6);
+            if (x >= 10 && x < 54 && y >= 12 && y < 52) {
+                c = frame;
+                bool inside = x >= 13 && x < 51 && y >= 15 && y < 49;
+                bool mullion = (x >= 30 && x < 34) || (y >= 30 && y < 33);
+                if (inside && !mullion) {
+                    c = glass;
+                    shift = GetRandomValue(-3, 3);
+                }
+            }
+            c.r = clamp_value(c.r + shift, 0, 255);
+            c.g = clamp_value(c.g + shift, 0, 255);
+            c.b = clamp_value(c.b + shift, 0, 255);
+            ImageDrawPixel(&image, x, y, c);
+        }
+    }
+    Texture2D texture = LoadTextureFromImage(image);
+    UnloadImage(image);
+    return texture;
+}
+
 renderer::renderer() {
     target = LoadRenderTexture(SCENE_WIDTH, SCENE_HEIGHT);
     camera.position = Vector3Zero();
@@ -45,10 +74,12 @@ renderer::renderer() {
 
 renderer::~renderer() {
     UnloadModel(wall_model);
+    UnloadModel(window_model);
     UnloadModel(floor_model);
     UnloadModel(ceiling_model);
     UnloadModel(box_model);
     UnloadTexture(wall_texture);
+    UnloadTexture(window_texture);
     UnloadTexture(floor_texture);
     UnloadTexture(ceiling_texture);
     UnloadTexture(white_texture);
@@ -77,16 +108,19 @@ void renderer::load_models() {
     Color floor_color = {95, 80, 70, 255};
     Color ceiling_color = {120, 120, 115, 255};
     wall_texture = make_noise_texture(wall_color, 8, 42, stripe_color);
+    window_texture = make_window_texture(wall_color);
     floor_texture = make_noise_texture(floor_color, 12, TEXTURE_SIZE, BLANK);
     ceiling_texture = make_noise_texture(ceiling_color, 6, TEXTURE_SIZE, BLANK);
     white_texture = make_noise_texture(WHITE, 0, TEXTURE_SIZE, BLANK);
 
     wall_model = LoadModelFromMesh(GenMeshCube(CELL, WALL_HEIGHT, CELL));
+    window_model = LoadModelFromMesh(GenMeshCube(CELL, WALL_HEIGHT, CELL));
     floor_model = LoadModelFromMesh(GenMeshCube(CELL, SLAB, CELL));
     ceiling_model = LoadModelFromMesh(GenMeshCube(CELL, SLAB, CELL));
     box_model = LoadModelFromMesh(GenMeshCube(1.0f, 1.0f, 1.0f));
 
     bind_model(wall_model, wall_texture);
+    bind_model(window_model, window_texture);
     bind_model(floor_model, floor_texture);
     bind_model(ceiling_model, ceiling_texture);
     bind_model(box_model, white_texture);
@@ -129,6 +163,11 @@ void renderer::present() {
 void renderer::draw_wall(Vector3 center) {
     Vector3 p = {center.x, WALL_HEIGHT / 2.0f, center.z};
     DrawModel(wall_model, p, 1.0f, WHITE);
+}
+
+void renderer::draw_window(Vector3 center) {
+    Vector3 p = {center.x, WALL_HEIGHT / 2.0f, center.z};
+    DrawModel(window_model, p, 1.0f, WHITE);
 }
 
 void renderer::draw_floor_and_ceiling(Vector3 center) {

@@ -10,8 +10,9 @@ const float WALK_SPEED = 2.6f;   // м/с
 const float RUN_SPEED = 4.6f;
 const float MOUSE_SENSITIVITY = 0.0025f;
 const float MAX_PITCH = 1.4f;    // насколько можно задрать или опустить голову
-const float STAMINA_DRAIN = 25.0f;
+const float STAMINA_DRAIN = 20.0f;   // бег без остановки - 5 секунд
 const float STAMINA_REGEN = 15.0f;
+const float TIRED_RECOVER = 30.0f;   // после усталости бег возвращается с 30% выносливости
 const float WALK_NOISE = 1.0f;   // радиус шума в метрах: шаги слышно только вплотную
 const float RUN_NOISE = 11.0f;
 
@@ -39,6 +40,9 @@ player::player(Vector3 p) : game_object(p), flashlight() {
     score = 0;
     moving = false;
     running = false;
+    tired = false;
+    boost_time = 0.0f;
+    speed_scale = 1.0f;
     caught = false;
 }
 
@@ -67,14 +71,24 @@ void player::walk(player_input &in, float dt, game_context &ctx) {
     Vector3 direction = Vector3Add(Vector3Scale(front, in.move.y), Vector3Scale(side, in.move.x));
 
     moving = Vector3LengthSqr(direction) > 0.0f;
-    running = moving && in.run && stamina > 0.0f;
+    running = moving && in.run && !tired;
 
     float change = running ? -STAMINA_DRAIN : STAMINA_REGEN;
     stamina = clamp_value(stamina + change * dt, 0.0f, 100.0f);
+    // после энергетика выносливость держится на 100%
+    if (boost_time > 0.0f) {
+        boost_time = clamp_value(boost_time - dt, 0.0f, boost_time);
+        stamina = 100.0f;
+    }
+    // выносливость кончилась - герой выдохся и идёт шагом, пока не отдышится до 30%
+    if (stamina <= 0.0f)
+        tired = true;
+    else if (stamina >= TIRED_RECOVER)
+        tired = false;
     if (!moving)
         return;
 
-    float speed = running ? RUN_SPEED : WALK_SPEED;
+    float speed = (running ? RUN_SPEED : WALK_SPEED) * speed_scale;
     Vector3 step = Vector3Scale(Vector3Normalize(direction), speed * dt);
 
     // оси проверяем отдельно, чтобы герой скользил вдоль стен
@@ -110,6 +124,8 @@ bool player::has_key(char id) {
     return false;
 }
 
-void player::add_stamina(float amount) {
-    stamina = clamp_value(stamina + amount, 0.0f, 100.0f);
+void player::drink_energy(float seconds) {
+    stamina = 100.0f;
+    tired = false;
+    boost_time = seconds;
 }
