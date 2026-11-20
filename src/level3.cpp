@@ -2,7 +2,7 @@
 #include "level3.h"
 #include "player.h"
 
-const float SIGHT_RANGE = 10.0f;   // с какого расстояния вахтёр видит героя
+const float SIGHT_RANGE = 6.0f;   // с какого расстояния вахтёр видит героя
 
 bool warden_enemy::notices(game_context &ctx) {
     float d = flat_distance(position, ctx.hero.get_position());

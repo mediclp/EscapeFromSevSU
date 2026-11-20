@@ -1,7 +1,9 @@
 // player.h - герой: движение, выносливость, ключи и очки
 #pragma once
+#include <string>
 #include "game_object.h"
 #include "flashlight.h"
+using namespace std;
 
 const float PLAYER_RADIUS = 0.3f;   // радиус столкновений героя в метрах
 
@@ -19,7 +21,7 @@ class player : public game_object, public flashlight {
 private:
     float yaw, pitch;   // поворот взгляда влево-вправо и вверх-вниз
     float stamina;
-    int keys;
+    string keys;   // буквы найденных ключей, например "ab"
     int score;
     bool moving, running, caught;
 
@@ -57,13 +59,17 @@ public:
         return *this;
     }
 
-    void add_key() { keys++; }
+    // кладёт ключ в карман: a, b, v - ключи от лестниц, c - пропуск
+    void add_key(char id) { keys += id; }
+
+    // есть ли у героя такой ключ
+    bool has_key(char id);
 
     // монстр догнал героя
     void catch_player() { caught = true; }
 
     float get_stamina() { return stamina; }
-    int get_keys() { return keys; }
+    int get_keys() { return keys.length(); }
     int get_score() { return score; }
     bool is_caught() { return caught; }
 };

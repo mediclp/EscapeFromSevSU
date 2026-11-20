@@ -13,7 +13,7 @@ const int SEARCH_RADIUS = 3;         // в скольких клетках от 
 const float TOUCH_DISTANCE = 1.5f;   // вплотную героя замечают все
 const float CATCH_DISTANCE = 0.8f;
 const float ARRIVE_DISTANCE = 0.05f;
-const float ALARM_SPEEDUP = 1.2f;    // во время тревоги монстры быстрее
+const float ALARM_SPEEDUP = 1.1f;    // во время тревоги монстры быстрее
 
 enemy::enemy(Vector3 p) : game_object(p) {
     state = PATROL;
@@ -97,6 +97,15 @@ float enemy::current_speed(bool alarm) {
 }
 
 void enemy::walk_to_goal(float dt, game_context &ctx, float speed) {
+    // в погоне, оказавшись в одной клетке с героем, идём прямо к нему, а не в центр клетки,
+    // иначе монстр замрёт рядом с героем, который стоит у края клетки
+    Vector3 hero = ctx.hero.get_position();
+    if (state == CHASE && cell_at(position) == cell_at(hero)) {
+        hero.y = position.y;
+        position = Vector3MoveTowards(position, hero, speed * dt);
+        return;
+    }
+
     Vector3 target = cell_center(waypoint);
     target.y = position.y;
     if (Vector3Distance(position, target) < ARRIVE_DISTANCE) {
