@@ -7,8 +7,8 @@
 #include "player.h"
 #include "renderer.h"
 
-const float INTERACT_DISTANCE = 1.8f;   // с какого расстояния берутся предметы
-const float DOOR_DISTANCE = 2.4f;       // с какого расстояния открываются двери
+const float INTERACT_DISTANCE = 1.5f;   // с какого расстояния берутся предметы
+const float DOOR_DISTANCE = 1.6f;       // с какого расстояния открываются двери: только вплотную
 const float ITEM_HEIGHT = 0.3f;         // высота предмета над полом
 const int RANDOM_BONUS_COUNT = 2;       // сколько бонусов появляется случайно
 
@@ -76,36 +76,32 @@ void level::load(string path) {
 }
 
 void level::create_objects() {
-    // дверь требует все ключи уровня, поэтому сначала считаем их
-    int key_count = 0;
-    for (int z = 0; z < grid.get_height(); z++) {
-        for (int x = 0; x < grid.get_width(); x++) {
-            cell c = {x, z};
-            if (grid.symbol_at(c) == 'K')
-                key_count++;
-        }
-    }
-
     int next_note = 0;
     for (int z = 0; z < grid.get_height(); z++) {
         for (int x = 0; x < grid.get_width(); x++) {
             cell c = {x, z};
             Vector3 center = cell_center(c);
             Vector3 on_floor = {center.x, ITEM_HEIGHT, center.z};
-            switch (grid.symbol_at(c)) {
+            char s = grid.symbol_at(c);
+            switch (s) {
             case 'P':
                 spawn = center;
                 has_spawn = true;
                 break;
             case 'X':
-                exit_cell = c;
-                has_exit = true;
+                if (!has_exit) {   // выходов может быть несколько, запоминаем первый
+                    exit_cell = c;
+                    has_exit = true;
+                }
                 break;
             case 'E':
                 add_enemy(create_enemy(center));   // монстра выбирает наследник
                 break;
-            case 'K':
-                add_item(new key(on_floor));
+            case 'a':
+            case 'b':
+            case 'v':
+            case 'c':
+                add_item(new key(on_floor, s));   // ключ от лестницы или пропуск
                 break;
             case 'B':
                 add_item(new battery(on_floor));
@@ -114,8 +110,11 @@ void level::create_objects() {
                 add_item(new note(on_floor, NOTE_TEXTS[next_note % NOTE_COUNT]));
                 next_note++;
                 break;
-            case 'D':
-                add_door(new door(center, key_count));
+            case '1':
+            case '2':
+            case '3':
+            case 'T':
+                add_door(new door(center, door_key(s)));   // дверь на лестницу или турникет
                 break;
             }
         }
@@ -165,6 +164,12 @@ void level::add_door(door *d) {
     door_count++;
 }
 
+void level::remove_enemies() {
+    for (int i = 0; i < enemy_count; i++)
+        delete enemies[i];
+    enemy_count = 0;
+}
+
 void level::update(float dt, game_context &ctx) {
     // полиморфизм: у каждого монстра своя версия notices внутри update
     for (int i = 0; i < enemy_count; i++)
@@ -190,13 +195,21 @@ void level::draw(renderer &r) {
             Vector3 center = cell_center(c);
             if (!r.is_near_camera(center))
                 continue;
-            if (grid.symbol_at(c) == '#')
+            char s = grid.symbol_at(c);
+            if (s == '#') {
                 r.draw_wall(center);
-            else
+            } else if (s == 'L') {
+                // лифт - декорация: света нет, лифты не работают
+                Vector3 lift = {center.x, WALL_HEIGHT / 2.0f, center.z};
+                Vector3 lift_size = {CELL, WALL_HEIGHT, CELL};
+                Color steel = {105, 110, 118, 255};
+                r.draw_box(lift, lift_size, steel);
+            } else {
                 r.draw_floor_and_ceiling(center);
-            if (c == exit_cell) {
+            }
+            if (s == 'X') {
                 Vector3 mark = {center.x, 0.05f, center.z};
-                Vector3 mark_size = {1.6f, 0.05f, 1.6f};
+                Vector3 mark_size = {CELL * 0.8f, 0.05f, CELL * 0.8f};
                 Color green = {50, 170, 80, 255};
                 r.draw_box(mark, mark_size, green);
             }
@@ -211,7 +224,7 @@ void level::draw(renderer &r) {
 }
 
 bool level::is_exit(Vector3 p) {
-    return cell_at(p) == exit_cell;
+    return grid.symbol_at(cell_at(p)) == 'X';
 }
 
 item* level::nearest_item(player &p) {
@@ -219,7 +232,8 @@ item* level::nearest_item(player &p) {
     float best = INTERACT_DISTANCE;
     for (int i = 0; i < item_count; i++) {
         float d = flat_distance(items[i]->get_position(), p.get_position());
-        if (d < best) {
+        // предмет за стеной не берём: клетки маленькие, стена бывает тоньше расстояния
+        if (d < best && grid.line_of_sight(items[i]->get_position(), p.get_position())) {
             best = d;
             nearest = items[i];
         }
@@ -254,7 +268,8 @@ string level::prompt(player &p) {
     item *it = nearest_item(p);
     if (it != NULL)
         return "E — взять " + it->name();
-    if (nearest_door(p) != NULL)
-        return "E — открыть дверь";
+    door *d = nearest_door(p);
+    if (d != NULL)
+        return "E — " + d->action();
     return "";
 }

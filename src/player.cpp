@@ -12,7 +12,7 @@ const float MOUSE_SENSITIVITY = 0.0025f;
 const float MAX_PITCH = 1.4f;    // насколько можно задрать или опустить голову
 const float STAMINA_DRAIN = 25.0f;
 const float STAMINA_REGEN = 15.0f;
-const float WALK_NOISE = 4.0f;   // радиус шума в метрах
+const float WALK_NOISE = 1.0f;   // радиус шума в метрах: шаги слышно только вплотную
 const float RUN_NOISE = 11.0f;
 
 // собирает команды героя с клавиатуры и мыши
@@ -31,10 +31,11 @@ player_input read_input() {
 }
 
 player::player(Vector3 p) : game_object(p), flashlight() {
-    yaw = 0.0f;
+    yaw = PI;   // смотрит вверх по карте: старт на всех уровнях внизу
+
     pitch = 0.0f;
     stamina = 100.0f;
-    keys = 0;
+    keys = "";
     score = 0;
     moving = false;
     running = false;
@@ -100,6 +101,13 @@ float player::noise_radius() {
     if (moving)
         return WALK_NOISE;
     return 0.0f;
+}
+
+bool player::has_key(char id) {
+    for (int i = 0; i < (int)keys.length(); i++)
+        if (keys[i] == id)
+            return true;
+    return false;
 }
 
 void player::add_stamina(float amount) {

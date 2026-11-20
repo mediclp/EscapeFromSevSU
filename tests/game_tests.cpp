@@ -55,6 +55,35 @@ void make_noise(player &p, level &l, bool running) {
     p.apply_input(in, 0.0f, ctx);
 }
 
+// монстр, ближайший к точке p
+enemy* nearest_enemy(level *l, Vector3 p) {
+    enemy *best = l->get_enemy(0);
+    for (int i = 1; i < l->get_enemy_count(); i++)
+        if (flat_distance(l->get_enemy(i)->get_position(), p) < flat_distance(best->get_position(), p))
+            best = l->get_enemy(i);
+    return best;
+}
+
+// центр клетки в cells клетках от точки по прямой без стен; тесты не зависят от формы карты
+Vector3 free_spot(level *l, Vector3 from, int cells) {
+    cell c = cell_at(from);
+    int dx[4] = {1, -1, 0, 0};
+    int dz[4] = {0, 0, 1, -1};
+    for (int i = 0; i < 4; i++) {
+        bool ok = true;
+        for (int k = 1; k <= cells; k++) {
+            cell n = {c.x + dx[i] * k, c.z + dz[i] * k};
+            if (l->get_map().is_solid(n))
+                ok = false;
+        }
+        if (ok) {
+            cell n = {c.x + dx[i] * cells, c.z + dz[i] * cells};
+            return cell_center(n);
+        }
+    }
+    return from;
+}
+
 // выключает или включает фонарик героя
 void toggle_flashlight(player &p, level &l) {
     game_context ctx = {l, p, false};
@@ -73,7 +102,19 @@ void test_map(int number) {
 
     grid_map &m = l->get_map();
     cell start = cell_at(l->get_spawn());
-    check(!m.is_reachable(start, l->get_exit()), prefix + "выход закрыт дверью");
+    // каждый выход (лестница или улица) закрыт дверью или турникетом
+    int exits = 0;
+    bool all_closed = true;
+    for (int z = 0; z < m.get_height(); z++)
+        for (int x = 0; x < m.get_width(); x++) {
+            cell c = {x, z};
+            if (m.symbol_at(c) == 'X') {
+                exits++;
+                if (m.is_reachable(start, c))
+                    all_closed = false;
+            }
+        }
+    check(exits > 0 && all_closed, prefix + "все выходы закрыты дверями");
     for (int i = 0; i < l->get_item_count(); i++) {
         item *it = l->get_item(i);
         check(m.is_reachable(start, cell_at(it->get_position())), prefix + "предмет достижим: " + it->name());
@@ -82,18 +123,21 @@ void test_map(int number) {
         check(m.is_reachable(start, cell_at(l->get_enemy(i)->get_position())), prefix + "монстр достижим");
 
     // собираем все предметы и открываем двери, как это сделал бы игрок
-    int keys = 0;
+    string keys = "";
     while (l->get_item_count() > 0) {
         player collector(l->get_item(0)->get_position());
         l->interact(collector);
-        keys += collector.get_keys();
+        string all = "abvc";
+        for (int k = 0; k < 4; k++)
+            if (collector.has_key(all[k]))
+                keys += all[k];
         game_context ctx = {*l, collector, false};
         l->update(0.0f, ctx);
     }
     for (int i = 0; i < l->get_door_count(); i++) {
         player at_door(l->get_door(i)->get_position());
-        for (int k = 0; k < keys; k++)
-            at_door.add_key();
+        for (int k = 0; k < (int)keys.length(); k++)
+            at_door.add_key(keys[k]);
         l->interact(at_door);
     }
     check(m.is_reachable(start, l->get_exit()), prefix + "с ключами выход достижим");
@@ -115,16 +159,53 @@ void test_broken_maps() {
     remove(path);
 }
 
-void test_door_needs_all_keys() {
+void test_door_needs_its_key() {
     Vector3 p = {1.0f, 0.0f, 1.0f};
-    door d(p, 2);
+    door d(p, 'a');
     player hero(p);
-    hero.add_key();
+    hero.add_key('b');
     d.open(hero);
-    check(!d.is_open(), "дверь не открывается с одним ключом из двух");
-    hero.add_key();
+    check(!d.is_open(), "дверь на лестницу А не открывается ключом от Б");
+    hero.add_key('a');
     d.open(hero);
-    check(d.is_open(), "дверь открывается со всеми ключами");
+    check(d.is_open(), "дверь на лестницу А открывается своим ключом");
+
+    door gate(p, door_key('T'));
+    player guest(p);
+    gate.open(guest);
+    check(!gate.is_open(), "турникет не пускает без пропуска");
+    guest.add_key('c');
+    gate.open(guest);
+    check(gate.is_open(), "турникет пускает с пропуском");
+}
+
+// лифты - декорация: они непроходимы и кнопкой E не открываются
+void test_lifts_are_decoration() {
+    for (int n = 1; n <= 3; n++) {
+        level *l = create_level(n);
+        loads(l, map_path(n));
+        grid_map &m = l->get_map();
+        int lifts = 0;
+        for (int z = 0; z < m.get_height(); z++)
+            for (int x = 0; x < m.get_width(); x++) {
+                cell c = {x, z};
+                if (m.symbol_at(c) == 'L') {
+                    lifts++;
+                    // герой со всеми ключами жмёт E рядом с лифтом
+                    Vector3 lift_pos = cell_center(c);
+                    lift_pos.x -= 1.5f;
+                    player near_lift(lift_pos);
+                    near_lift.add_key('a');
+                    near_lift.add_key('b');
+                    near_lift.add_key('v');
+                    near_lift.add_key('c');
+                    l->interact(near_lift);
+                    check(m.is_solid(c), string("уровень ") + TextFormat("%d", n) + ": лифт не открывается");
+                }
+            }
+        check(lifts == 2, string("уровень ") + TextFormat("%d", n) + ": два лифта");
+        delete l;
+    }
 }
 
 void test_collision() {
@@ -142,7 +223,7 @@ void test_items() {
     hero.add_charge(50.0f);
     check(hero.get_charge() == 100.0f, "заряд не превышает 100");
 
-    key k(zero);
+    key k(zero, 'a');
     k.pick_up(hero);
     check(hero.get_keys() == 1 && hero.get_score() == 50, "ключ считается и даёт очки");
     check(!k.is_active(), "подобранный предмет исчезает");
@@ -176,8 +257,8 @@ void simulate(enemy &e, game_context &ctx, float seconds) {
 void test_listener_hears_noise() {
     level *l = create_level(1);
     loads(l, map_path(1));
-    enemy *e = l->get_enemy(0);
-    Vector3 close = {e->get_position().x + 6.0f, 0.0f, e->get_position().z};
+    enemy *e = nearest_enemy(l, l->get_spawn());
+    Vector3 close = free_spot(l, e->get_position(), 3);
 
     player quiet(close);
     game_context quiet_ctx = {*l, quiet, false};
@@ -186,7 +267,7 @@ void test_listener_hears_noise() {
 
     level *loud_level = create_level(1);
     loads(loud_level, map_path(1));
-    enemy *hunter = loud_level->get_enemy(0);
+    enemy *hunter = nearest_enemy(loud_level, loud_level->get_spawn());
     player loud(close);
     make_noise(loud, *loud_level, true);
     game_context loud_ctx = {*loud_level, loud, false};
@@ -203,7 +284,7 @@ void test_listener_hears_noise() {
 void test_chase_ends_in_search_and_patrol() {
     level *l = create_level(1);
     loads(l, map_path(1));
-    enemy *e = l->get_enemy(0);
+    enemy *e = nearest_enemy(l, l->get_spawn());
     player hero(l->get_spawn());
     make_noise(hero, *l, true);
     game_context ctx = {*l, hero, false};
@@ -219,6 +300,40 @@ void test_chase_ends_in_search_and_patrol() {
     check(e->get_state() == SEARCH, "затем ищет");
     simulate(*e, escaped_ctx, 6.5f);
     check(e->get_state() == PATROL, "затем возвращается в патруль");
+    delete l;
+}
+
+// герой стоит у края клетки: монстр должен подойти вплотную и поймать, а не встать в центре клетки
+void test_catches_player_off_center() {
+    level *l = create_level(1);
+    loads(l, map_path(1));
+    enemy *e = nearest_enemy(l, l->get_spawn());
+    Vector3 near = free_spot(l, e->get_position(), 2);
+    near.x += CELL * 0.35f;
+    near.z += CELL * 0.35f;
+    player hero(near);
+    make_noise(hero, *l, true);
+    game_context ctx = {*l, hero, false};
+    simulate(*e, ctx, 1.0f);
+    check(e->get_state() == CHASE, "монстр погнался за героем у края клетки");
+
+    player still(near);
+    game_context still_ctx = {*l, still, false};
+    simulate(*e, still_ctx, 10.0f);
+    check(still.is_caught(), "монстр ловит героя, который замер у края клетки");
+    delete l;
+}
+
+void test_walking_is_quiet() {
+    level *l = create_level(1);
+    loads(l, map_path(1));
+    enemy *e = nearest_enemy(l, l->get_spawn());
+    Vector3 close = free_spot(l, e->get_position(), 2);
+    player hero(close);
+    make_noise(hero, *l, false);
+    game_context ctx = {*l, hero, false};
+    simulate(*e, ctx, 0.5f);
+    check(e->get_state() == PATROL, "слухач не слышит шаги героя в 4 м");
     delete l;
 }
 
@@ -239,8 +354,13 @@ void test_patrol_never_freezes() {
 void test_light_hunter_ignores_dark_player() {
     level *l = create_level(2);
     loads(l, map_path(2));
+    // берём монстра, рядом с которым есть 3 свободные клетки по прямой
     enemy *e = l->get_enemy(0);
-    Vector3 close = {e->get_position().x + 6.0f, 0.0f, e->get_position().z};
+    Vector3 close = free_spot(l, e->get_position(), 3);
+    for (int i = 1; i < l->get_enemy_count() && flat_distance(close, e->get_position()) < 1.0f; i++) {
+        e = l->get_enemy(i);
+        close = free_spot(l, e->get_position(), 3);
+    }
     player hero(close);
     toggle_flashlight(hero, *l);
     game_context ctx = {*l, hero, false};
@@ -290,13 +410,16 @@ int main() {
     for (int number = 1; number <= 3; number++)
         test_map(number);
     test_broken_maps();
-    test_door_needs_all_keys();
+    test_door_needs_its_key();
+    test_lifts_are_decoration();
     test_collision();
     test_items();
     test_energy_drink();
     test_listener_hears_noise();
     test_chase_ends_in_search_and_patrol();
     test_patrol_never_freezes();
+    test_catches_player_off_center();
+    test_walking_is_quiet();
     test_light_hunter_ignores_dark_player();
     test_records();
     cout << endl << "Ошибок: " << failures << endl;

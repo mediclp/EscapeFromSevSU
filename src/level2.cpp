@@ -2,7 +2,7 @@
 #include "level2.h"
 #include "player.h"
 
-const float LIGHT_RANGE = 12.0f;   // с какого расстояния виден фонарик
+const float LIGHT_RANGE = 9.0f;   // с какого расстояния виден фонарик
 
 bool light_hunter_enemy::notices(game_context &ctx) {
     if (enemy::notices(ctx))

@@ -28,14 +28,20 @@ public:
     virtual Color color() = 0;
 };
 
-// ключ: нужен, чтобы открыть дверь к выходу
+// название ключа по его букве: a, b, v - ключи от лестниц корпусов А, Б, В; c - электронный пропуск
+string key_title(char id);
+
+// ключ от одной двери: от лестницы своего корпуса или пропуск для турникета
 class key : public item {
+private:
+    char id;   // какую дверь открывает
+
 public:
-    key(Vector3 p) : item(p) {}
-    string name() { return "ключ"; }
+    key(Vector3 p, char k) : item(p) { id = k; }
+    string name() { return key_title(id); }
     string apply_to(player &p);
     int points() { return 50; }
-    Color color() { return GOLD; }
+    Color color();
 };
 
 // батарейка: заряжает фонарик

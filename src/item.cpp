@@ -17,9 +17,28 @@ string item::pick_up(player &p) {
     return apply_to(p);
 }
 
+string key_title(char id) {
+    switch (id) {
+    case 'a':
+        return "ключ от лестницы корпуса А";
+    case 'b':
+        return "ключ от лестницы корпуса Б";
+    case 'v':
+        return "ключ от лестницы корпуса В";
+    default:
+        return "электронный пропуск";
+    }
+}
+
 string key::apply_to(player &p) {
-    p.add_key();
-    return "Найден ключ";
+    p.add_key(id);
+    return "Найден " + key_title(id);
+}
+
+Color key::color() {
+    if (id == 'c')
+        return {80, 160, 255, 255};   // пропуск - синяя карточка
+    return GOLD;
 }
 
 string battery::apply_to(player &p) {

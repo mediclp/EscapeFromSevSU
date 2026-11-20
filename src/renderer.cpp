@@ -5,8 +5,9 @@
 #include "clamp.h"
 #include "raymath.h"
 
-const int SCENE_WIDTH = 320;
-const int SCENE_HEIGHT = 240;
+// 16:9, ровно в 4 раза меньше экрана 1920x1080 и в 2 раза меньше окна 960x540
+const int SCENE_WIDTH = 480;
+const int SCENE_HEIGHT = 270;
 const float DRAW_DISTANCE = 16.0f;   // дальше всё скрыто туманом
 const float SLAB = 0.1f;             // толщина пола и потолка
 const int TEXTURE_SIZE = 64;

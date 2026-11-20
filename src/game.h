@@ -22,6 +22,7 @@ private:
     int total_score;       // очки за пройденные уровни
     float play_time;       // сколько секунд идёт игра
     bool quit;
+    bool peaceful;         // осмотр карт без монстров
     bool alarm_active;
     float alarm_time;      // сколько длится текущая фаза тревоги
     string message;        // сообщение на экране
@@ -34,8 +35,12 @@ private:
     // загружает шрифт с кириллицей
     void load_font();
 
-    // сбрасывает счёт и начинает игру с первого уровня
-    void start_new_game();
+    // во сколько раз увеличить интерфейс: 1 для высоты 720, 1.5 для 1080
+    float ui_scale();
+
+    // сбрасывает счёт и начинает игру с первого уровня;
+    // peaceful - осмотр карт: без монстров и со всеми ключами
+    void start_new_game(bool p);
 
     // загружает уровень и создаёт героя
     void start_level(int number);
