@@ -2,7 +2,11 @@
 
 Курсовой проект по ООП: 3D-хоррор от первого лица на C++ и raylib.
 
-## Запуск
+## Скачать игру
+
+Готовая версия для Windows: [EscapeFromSevSU-v1.0-windows.zip](https://github.com/mediclp/EscapeFromSevSU/releases/download/v1.0/EscapeFromSevSU-v1.0-windows.zip) ([все версии](https://github.com/mediclp/EscapeFromSevSU/releases)). Распакуйте архив целиком и запустите `EscapeFromSevSU.exe`, устанавливать ничего не нужно. Если Windows покажет предупреждение SmartScreen, нажмите «Подробнее» → «Выполнить в любом случае».
+
+## Сборка из исходников
 
 Откройте папку проекта в CLion как CMake-проект и запустите цель `EscapeFromSevSU`.
 raylib скачается сам при первой сборке, нужен интернет. Тесты логики лежат в цели `game_tests`.
