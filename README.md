@@ -6,6 +6,10 @@
 
 Готовая версия для Windows: [EscapeFromSevSU-v1.0-windows.zip](https://github.com/mediclp/EscapeFromSevSU/releases/download/v1.0/EscapeFromSevSU-v1.0-windows.zip) ([все версии](https://github.com/mediclp/EscapeFromSevSU/releases)). Распакуйте архив целиком и запустите `EscapeFromSevSU.exe`, устанавливать ничего не нужно. Если Windows покажет предупреждение SmartScreen, нажмите «Подробнее» → «Выполнить в любом случае».
 
+## Описание проекта
+
+Страница с экранами игры, картами этажей, классами и темами ООП: [`docs/index.html`](docs/index.html). Скачайте файл и откройте в браузере.
+
 ## Сборка из исходников
 
 Откройте папку проекта в CLion как CMake-проект и запустите цель `EscapeFromSevSU`.
