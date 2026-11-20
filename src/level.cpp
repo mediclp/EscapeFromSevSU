@@ -11,6 +11,7 @@ const float INTERACT_DISTANCE = 1.5f;   // с какого расстояния 
 const float DOOR_DISTANCE = 1.6f;       // с какого расстояния открываются двери: только вплотную
 const float ITEM_HEIGHT = 0.3f;         // высота предмета над полом
 const int RANDOM_BONUS_COUNT = 2;       // сколько бонусов появляется случайно
+const float DOOR_HEIGHT = 2.1f;         // высота дверного проёма, выше - стена-перемычка
 
 const int NOTE_COUNT = 3;
 const string NOTE_TEXTS[NOTE_COUNT] = {
@@ -206,6 +207,13 @@ void level::draw(renderer &r) {
                 r.draw_box(lift, lift_size, steel);
             } else {
                 r.draw_floor_and_ceiling(center);
+            }
+            if (s == 'd') {
+                // дверной проём: пройти можно, а над ним перемычка до потолка
+                Vector3 lintel = {center.x, (DOOR_HEIGHT + WALL_HEIGHT) / 2.0f, center.z};
+                Vector3 lintel_size = {CELL, WALL_HEIGHT - DOOR_HEIGHT, CELL};
+                Color plaster = {150, 145, 125, 255};
+                r.draw_box(lintel, lintel_size, plaster);
             }
             if (s == 'X') {
                 Vector3 mark = {center.x, 0.05f, center.z};
